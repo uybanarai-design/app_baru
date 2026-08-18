@@ -50,13 +50,16 @@ elif pilihan_menu == "💬 Quotes Inspiratif":
     st.write("Fitur quotes siap digunakan.")
 
 # ---------------------------------------------------------
-# MENU 5: MEDIA DOWNLOADER (COBALT API)
+# MENU 5: MEDIA DOWNLOADER (YT-DLP NATIVE)
 # ---------------------------------------------------------
 elif pilihan_menu == "📥 Media Downloader" or "Media Downloader" in pilihan_menu:
+    import os
+    import yt_dlp
+
     st.markdown("""
         <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 20px;">
             <h2 style="color: white; margin: 0;">📺 Universal Media Downloader</h2>
-            <p style="color: #9ca3af; margin: 5px 0 0 0;">Unduh video atau audio YouTube secara instan.</p>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Unduh video atau audio YouTube secara langsung via yt-dlp.</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -69,37 +72,47 @@ elif pilihan_menu == "📥 Media Downloader" or "Media Downloader" in pilihan_me
         if not url_in.strip():
             st.warning("⚠️ Masukkan URL video terlebih dahulu!")
         else:
-            with st.spinner("Sedang memproses permintaan via Cobalt API v10..."):
+            with st.spinner("Sedang mengunduh file ke server... Mohon tunggu sebentar."):
                 try:
-                    # Menggunakan API Cobalt v10 Official
-                    api_url = "https://api.cobalt.tools/"
-                    payload = {
-                        "url": url_in.strip(),
-                        "downloadMode": "audio" if "Audio" in fmt else "auto",
-                        "audioFormat": "mp3",
-                        "videoQuality": "720"
-                    }
-                    headers = {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json"
+                    out_dir = "downloads"
+                    os.makedirs(out_dir, exist_ok=True)
+
+                    # Opsi yt-dlp dengan penyamaran Client Android agar lolos blokir IP Cloud
+                    ydl_opts = {
+                        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' if "Video" in fmt else 'bestaudio/best',
+                        'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
+                        'quiet': True,
+                        'no_warnings': True,
+                        'nocheckcertificate': True,
+                        'socket_timeout': 30,
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['android', 'ios', 'mweb']
+                            }
+                        },
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                        }
                     }
 
-                    res = requests.post(api_url, json=payload, headers=headers, timeout=10)
-                    data = res.json()
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(url_in.strip(), download=True)
+                        file_path = ydl.prepare_filename(info)
 
-                    if res.status_code == 200 and (data.get("status") in ["tunnel", "redirect", "picker"] or data.get("url")):
-                        download_link = data.get("url")
-                        st.success("✅ Tautan unduhan berhasil dibuat!")
-                        st.link_button("💾 Klik di Sini untuk Unduh File", download_link, type="primary")
-                    else:
-                        # Jika API menolak (karena bot protection / JWT), berikan link akses langsung ke Cobalt Web
-                        st.warning("⚠️ API Cobalt memblokir permintaan otomatis dari server Cloud. Gunakan tautan langsung di bawah:")
-                        st.link_button("🌐 Buka & Unduh Langsung via Cobalt Web", f"https://cobalt.tools/#url={url_in.strip()}", type="primary", use_container_width=True)
+                    # Jika file berhasil diunduh, tampilkan tombol download bawaan Streamlit
+                    if os.path.exists(file_path):
+                        with open(file_path, "rb") as file:
+                            btn = st.download_button(
+                                label="💾 Klik di Sini untuk Mengunduh File",
+                                data=file,
+                                file_name=os.path.basename(file_path),
+                                mime="video/mp4" if "Video" in fmt else "audio/mp3",
+                                type="primary"
+                            )
+                        st.success("✅ File berhasil diproses!")
 
                 except Exception as e:
-                    # Cadangan jika terjadi kendala koneksi API
-                    st.warning("⚠️ Gagal terhubung ke API Cobalt. Silakan unduh langsung via web Cobalt:")
-                    st.link_button("🌐 Buka & Unduh Langsung via Cobalt Web", f"https://cobalt.tools/#url={url_in.strip()}", type="primary", use_container_width=True)
+                    st.error(f"❌ Gagal mengunduh media: {e}")
 
     if url_in.strip():
         st.divider()
