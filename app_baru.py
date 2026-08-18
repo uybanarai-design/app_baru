@@ -73,7 +73,7 @@ elif pilihan_menu == "📥 Media Downloader":
                 try:
                     # Memanggil API Cobalt
                     # Memanggil API Cobalt v10 Terbaru
-                    api_url = "https://api.cobalt.tools/"
+                    api_url = "https://cobalt.qewertyy.dev/"
                     payload = {
                         "url": url_in.strip(),
                         "downloadMode": "audio" if "Audio" in fmt else "auto",
