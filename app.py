@@ -241,71 +241,53 @@ elif pilihan_menu == "💬 Quotes Inspiratif":
         st.rerun()
 
 
-# --- FITUR 5: MEDIA DOWNLOADER ---
-elif pilihan_menu == "📥 Media Downloader":
+# ---------------------------------------------------------
+# MENU 5: MEDIA DOWNLOADER (API BYPASS)
+# ---------------------------------------------------------
+elif "Media Downloader" in pilihan_menu:
+    import requests
+
     st.markdown("""
-        <div class="header-box">
-            <h2>📥 Universal Media Downloader</h2>
-            <p style="color: #9ca3af; margin: 0;">Unduh file video MP4 atau audio MP3 favoritmu dari YouTube.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">📺 Universal Media Downloader</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Unduh video atau audio YouTube secara instan & bebas blokir bot.</p>
         </div>
     """, unsafe_allow_html=True)
 
-    url = st.text_input(
-        "🔗 Tempel Link / URL Video YouTube:",
-        placeholder="https://www.youtube.com/watch?v=..."
-    )
-
-    format_pilihan = st.radio(
-        "Pilih Format Output:",
-        ["📹 Video (MP4)", "🎵 Audio Saja (MP3 / Best Audio)"],
-        horizontal=True
-    )
+    url_in = st.text_input("🔗 Tempel URL Video YouTube:", placeholder="https://www.youtube.com/watch?v=...")
+    fmt = st.radio("Format Output:", ["📹 Video (MP4)", "🎵 Audio Saja (MP3)"], horizontal=True)
 
     st.divider()
 
     if st.button("🚀 Unduh Media Sekarang", type="primary"):
-        if not url.strip():
-            st.warning("⚠️ Masukkan link video terlebih dahulu!")
+        if not url_in.strip():
+            st.warning("⚠️ Masukkan URL video terlebih dahulu!")
         else:
-            with st.spinner("Sedang memproses tautan dan menyiapkan file..."):
+            with st.spinner("Sedang memproses tautan unduhan... Mohon tunggu sebentar."):
                 try:
-                    download_folder = "downloads"
-                    os.makedirs(download_folder, exist_ok=True)
-                    outtmpl = os.path.join(download_folder, '%(title)s.%(ext)s')
+                    # Menghubungi API Cobalt untuk bypass proteksi YouTube
+                    api_url = "https://api.cobalt.tools/api/json"
+                    payload = {
+                        "url": url_in.strip(),
+                        "downloadMode": "audio" if "Audio" in fmt else "auto",
+                        "audioFormat": "mp3",
+                        "videoQuality": "max"
+                    }
+                    headers = {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json"
+                    }
 
-                    if "Audio" in format_pilihan:
-                        ydl_opts = {
-                            'format': 'bestaudio/best',
-                            'outtmpl': outtmpl,
-                            'quiet': True,
-                            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'extractor_args': {'youtube': {'player_client': ['android', 'web']}}
-                        }
+                    res = requests.post(api_url, json=payload, headers=headers, timeout=15)
+                    data = res.json()
+
+                    if res.status_code == 200 and data.get("status") in ["tunnel", "redirect"]:
+                        download_link = data.get("url")
+                        st.success("✅ Tautan unduhan berhasil dibuat!")
+                        st.link_button("💾 Klik di Sini untuk Unduh File", download_link, type="primary")
                     else:
-                        ydl_opts = {
-                            'format': 'best[ext=mp4]/best',
-                            'outtmpl': outtmpl,
-                            'quiet': True,
-                            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'extractor_args': {'youtube': {'player_client': ['android', 'web']}}
-                        }
-
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url, download=True)
-                        judul_video = info.get('title', 'Media_File')
-                        file_path = ydl.prepare_filename(info)
-
-                    st.success(f"✅ Selesai memproses: **{judul_video}**")
-
-                    if os.path.exists(file_path):
-                        with open(file_path, "rb") as file:
-                            st.download_button(
-                                label="💾 Simpan File ke Device",
-                                data=file,
-                                file_name=os.path.basename(file_path),
-                                mime="application/octet-stream",
-                                type="primary"
-                            )
+                        error_detail = data.get("text", "Gagal memproses URL media.")
+                        st.error(f"❌ Terjadi kesalahan: {error_detail}")
 
                 except Exception as e:
-                    st.error(f"❌ Terjadi kesalahan saat mengunduh: {e}")
+                    st.error(f"❌ Terjadi kesalahan jaringan: {e}")
