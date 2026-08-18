@@ -243,14 +243,14 @@ elif pilihan_menu == "💬 Quotes Inspiratif":
         st.rerun()
 
 
-# ==========================================
-# 📥 FITUR 5: MEDIA DOWNLOADER (ANTI TIMEOUT)
-# ==========================================
-elif pilihan_menu == "📥 Media Downloader":
+# =========================================================
+# 📬 FITUR 5: MEDIA DOWNLOADER (ANTI BLOKIR CLOUD)
+# =========================================================
+elif pilihan_menu == "📬 Media Downloader":
     st.markdown("""
         <div class="header-box">
-            <h2>📥 Universal Media Downloader</h2>
-            <p style="color: #9ca3af; margin: 0;">Unduh video/audio YouTube tanpa error.</p>
+            <h2>📺 Universal Media Downloader</h2>
+            <p style="color: #9ca3af; margin: 0;">Unduh video/audio YouTube tanpa error bot/403.</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -265,37 +265,29 @@ elif pilihan_menu == "📥 Media Downloader":
         else:
             with st.spinner("Mengunduh media... Mohon tunggu sebentar."):
                 try:
-                    out_dir = "downloads"
-                    os.makedirs(out_dir, exist_ok=True)
-                    
-                    ydl_opts = {
-            'format': 'best[ext=mp4][height<=720]/best[height<=720]/best' if "Video" in fmt else 'bestaudio/best',
-            'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
-            'quiet': True,
-            'no_warnings': True,
-            'nocheckcertificate': True,
-            'socket_timeout': 15,
-            'extractor_args': {'youtube': {'player_client': ['mweb', 'android']}},
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
-            }
-        }
+                    # Memanggil API Cobalt untuk bypass deteksi bot di server cloud
+                    api_url = "https://api.cobalt.tools/api/json"
+                    payload = {
+                        "url": url_in.strip(),
+                        "downloadMode": "audio" if "Audio" in fmt else "auto",
+                        "audioFormat": "mp3",
+                        "videoQuality": "720"
+                    }
+                    headers = {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json"
+                    }
 
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url_in, download=True)
-                        title = info.get('title', 'Downloaded_Media')
-                        fpath = ydl.prepare_filename(info)
+                    res = requests.post(api_url, json=payload, headers=headers, timeout=15)
+                    data = res.json()
 
-                    st.success(f"✅ Selesai: **{title}**")
+                    if res.status_code == 200 and data.get("status") in ["tunnel", "redirect"]:
+                        download_link = data.get("url")
+                        st.success("✅ Tautan unduhan berhasil dibuat!")
+                        st.link_button("💾 Klik di Sini untuk Unduh File", download_link, type="primary")
+                    else:
+                        error_detail = data.get("text", "Gagal memproses URL media.")
+                        st.error(f"❌ Terjadi kesalahan: {error_detail}")
 
-                    if os.path.exists(fpath):
-                        with open(fpath, "rb") as f:
-                            st.download_button(
-                                label="💾 Simpan File ke Laptop/HP",
-                                data=f,
-                                file_name=os.path.basename(fpath),
-                                mime="application/octet-stream",
-                                type="primary"
-                            )
-                except Exception as err:
-                    st.error(f"❌ Terjadi kesalahan: {err}")
+                except Exception as e:
+                    st.error(f"❌ Terjadi kesalahan jaringan: {e}")
