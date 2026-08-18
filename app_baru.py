@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import requests
 
 st.set_page_config(page_title="Personal Dashboard", page_icon="🚀", layout="wide")
@@ -73,7 +73,7 @@ elif pilihan_menu == "📥 Media Downloader":
                 try:
                     # Memanggil API Cobalt
                     # Memanggil API Cobalt v10 Terbaru
-                    api_url = "https://cobalt-api.kwiatekmandarynka.com/"
+                    api_url = "https://api.cobalt.tools/"
                     payload = {
                         "url": url_in.strip(),
                         "downloadMode": "audio" if "Audio" in fmt else "auto",
