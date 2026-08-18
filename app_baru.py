@@ -72,7 +72,8 @@ elif pilihan_menu == "📥 Media Downloader":
             with st.spinner("Sedang memproses tautan unduhan... Mohon tunggu sebentar."):
                 try:
                     # Memanggil API Cobalt
-                    api_url = "https://api.cobalt.tools/api/json"
+                    # Memanggil API Cobalt v10 Terbaru
+                    api_url = "https://cobalt-api.kwiatekmandarynka.com/"
                     payload = {
                         "url": url_in.strip(),
                         "downloadMode": "audio" if "Audio" in fmt else "auto",
@@ -87,12 +88,12 @@ elif pilihan_menu == "📥 Media Downloader":
                     res = requests.post(api_url, json=payload, headers=headers, timeout=15)
                     data = res.json()
 
-                    if res.status_code == 200 and data.get("status") in ["tunnel", "redirect"]:
+                    if res.status_code == 200 and data.get("status") in ["tunnel", "redirect", "picker"]:
                         download_link = data.get("url")
                         st.success("✅ Tautan unduhan berhasil dibuat!")
                         st.link_button("💾 Klik di Sini untuk Unduh File", download_link, type="primary")
                     else:
-                        error_detail = data.get("text", "Gagal memproses URL media.")
+                        error_detail = data.get("text") or data.get("error", {}).get("code", "Gagal memproses URL media.")
                         st.error(f"❌ Terjadi kesalahan: {error_detail}")
 
                 except Exception as e:
