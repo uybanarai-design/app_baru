@@ -1,5 +1,6 @@
 streamlit
+yt-dlp
 requests
 pandas
+openpyxl
 beautifulsoup4
-yt-dlp
