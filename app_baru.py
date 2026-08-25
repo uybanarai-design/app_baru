@@ -1,6 +1,7 @@
 import os
 import random
 import requests
+import io
 import pandas as pd
 import streamlit as st
 import yt_dlp
@@ -120,13 +121,13 @@ elif pilihan_menu == "📝 To-Do List" or "To-Do List" in pilihan_menu:
                 st.rerun()
 
 # =========================================================
-# MENU 3: PELACAK KEUANGAN (PANDAS & METRICS)
+# MENU 3: PELACAK KEUANGAN (FITUR EKSPOR CSV & EXCEL)
 # =========================================================
 elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_menu:
     st.markdown("""
         <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 20px;">
             <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan Ringkas</h2>
-            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat dan monitor arus kas harian Anda.</p>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat, monitor, dan ekspor arus kas harian Anda.</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -162,6 +163,38 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
 
         st.subheader("📋 Riwayat Transaksi")
         st.dataframe(df, use_container_width=True)
+
+        # -------------------------------------------------
+        # TOMBOL EKSPOR DATA (CSV & EXCEL)
+        # -------------------------------------------------
+        st.divider()
+        st.subheader("📥 Ekspor Laporan Keuangan")
+        col_csv, col_excel = st.columns(2)
+
+        # 1. Ekspor CSV
+        csv_data = df.to_csv(index=False).encode('utf-8')
+        col_csv.download_button(
+            label="📄 Unduh Laporan (CSV)",
+            data=csv_data,
+            file_name="laporan_keuangan.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+        # 2. Ekspor Excel (.xlsx)
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Keuangan')
+        excel_data = buffer.getvalue()
+
+        col_excel.download_button(
+            label="📊 Unduh Laporan (Excel)",
+            data=excel_data,
+            file_name="laporan_keuangan.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True
+        )
 
 # =========================================================
 # MENU 4: QUOTES INSPIRATIF
