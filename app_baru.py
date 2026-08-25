@@ -1,61 +1,15 @@
 import os
 import random
-import sqlite3
 import requests
 import pandas as pd
 import streamlit as st
 import yt_dlp
 
-# --- KONFIGURASI HALAMAN ---
-st.set_page_config(
-    page_title="Personal Dashboard",
-    page_icon="🚀",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Personal Dashboard", page_icon="🚀", layout="wide")
 
-# --- INIALISASI DATABASE KEUANGAN (SQLITE) ---
-def init_db():
-    conn = sqlite3.connect("database_app.db")
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS keuangan (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            keterangan TEXT,
-            jumlah REAL,
-            jenis TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-# --- INITIALIZE SESSION STATE FOR TO-DO ---
-if "todo_list" not in st.session_state:
-    st.session_state.todo_list = []
-
-# --- CUSTOM STYLING (CSS) ---
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; }
-    div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 16px;
-    }
-    .header-box {
-        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        border-left: 5px solid #3b82f6;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 25px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- SIDEBAR NAVIGASI ---
+# =========================================================
+# SIDEBAR NAVIGATION
+# =========================================================
 st.sidebar.title("🚀 Personal Dashboard")
 st.sidebar.caption("All-in-One Productivity Hub")
 
@@ -70,187 +24,186 @@ pilihan_menu = st.sidebar.radio(
     ]
 )
 
-st.sidebar.markdown("---")
-st.sidebar.info("💡 **Status:** Dashboard Aktif & Siap Digunakan")
+st.sidebar.divider()
+st.sidebar.info("💡 Status: Dashboard Aktif & Siap Digunakan")
 
-
-# ==========================================
-# 🌤️ FITUR 1: CEK CUACA
-# ==========================================
-if pilihan_menu == "🌤️ Cek Cuaca":
+# =========================================================
+# MENU 1: CEK CUACA (OPEN-METEO API)
+# =========================================================
+if pilihan_menu == "🌤️ Cek Cuaca" or "Cek Cuaca" in pilihan_menu:
     st.markdown("""
-        <div class="header-box">
-            <h2>🌤️ Cek Cuaca Real-Time</h2>
-            <p style="color: #9ca3af; margin: 0;">Prakiraan cuaca langsung via Open-Meteo API.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">🌤️ Cek Cuaca Real-Time</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Prakiraan cuaca langsung via Open-Meteo API.</p>
         </div>
     """, unsafe_allow_html=True)
-    
-    col1, _ = st.columns([2, 1])
-    kota = col1.text_input("📍 Masukkan Nama Kota:", placeholder="Contoh: Jakarta, Surabaya, Bali, Tokyo")
-    
+
+    kota = st.text_input("📍 Masukkan Nama Kota:", placeholder="Contoh: Jakarta, Surabaya, Bali, Tokyo")
+
     if st.button("🔍 Cek Cuaca", type="primary"):
         if not kota.strip():
             st.warning("⚠️ Masukkan nama kota terlebih dahulu!")
         else:
-            with st.spinner("Mengambil data cuaca..."):
+            with st.spinner(f"Mengambil data cuaca untuk {kota}..."):
                 try:
-                    geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={kota}&count=1"
-                    geo_res = requests.get(geo_url).json()
-                    
+                    geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={kota.strip()}&count=1&language=id&format=json"
+                    geo_res = requests.get(geo_url, timeout=10).json()
+
                     if "results" in geo_res and len(geo_res["results"]) > 0:
                         lat = geo_res["results"][0]["latitude"]
                         lon = geo_res["results"][0]["longitude"]
                         nama_res = geo_res["results"][0]["name"]
                         negara = geo_res["results"][0].get("country", "")
+
+                        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+                        w_res = requests.get(weather_url, timeout=10).json()
+
+                        curr = w_res.get("current_weather", {})
+                        temp = curr.get("temperature", "-")
+                        wind = curr.get("windspeed", "-")
+                        code = curr.get("weathercode", 0)
+
+                        status_cuaca = "☀️ Cerah" if code == 0 else "⛅ Berawan" if code in [1, 2, 3] else "🌧️ Hujan" if code in [51, 61, 63, 80] else "🌩️ Badai"
+
+                        st.success(f"📍 Hasil Cuaca untuk **{nama_res}, {negara}**")
                         
-                        w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-                        w_res = requests.get(w_url).json()
-                        curr = w_res["current_weather"]
-                        
-                        st.success(f"Lokasi: **{nama_res}, {negara}**")
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("🌡️ Suhu Udara", f"{curr['temperature']} °C")
-                        c2.metric("💨 Kecepatan Angin", f"{curr['windspeed']} km/h")
-                        c3.metric("🧭 Arah Angin", f"{curr['winddirection']}°")
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("🌡️ Suhu", f"{temp} °C")
+                        col2.metric("🌤️ Kondisi", status_cuaca)
+                        col3.metric("💨 Angin", f"{wind} km/h")
                     else:
-                        st.error("❌ Kota tidak ditemukan.")
+                        st.error("❌ Kota tidak ditemukan. Coba ejaan nama kota lain.")
+
                 except Exception as e:
-                    st.error(f"❌ Error: {e}")
+                    st.error(f"❌ Gagal mengambil data cuaca: {e}")
 
-
-# ==========================================
-# 📝 FITUR 2: TO-DO LIST
-# ==========================================
-elif pilihan_menu == "📝 To-Do List":
+# =========================================================
+# MENU 2: TO-DO LIST (SESSION STATE)
+# =========================================================
+elif pilihan_menu == "📝 To-Do List" or "To-Do List" in pilihan_menu:
     st.markdown("""
-        <div class="header-box">
-            <h2>📝 To-Do List Harian</h2>
-            <p style="color: #9ca3af; margin: 0;">Kelola tugas dan target harianmu.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #10b981; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">📝 To-Do List & Productivity Planner</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Kelola daftar tugas harian Anda secara fleksibel.</p>
         </div>
     """, unsafe_allow_html=True)
-    
-    col_in, col_bt = st.columns([4, 1])
-    tugas_baru = col_in.text_input("Tugas Baru:", placeholder="Tuliskan tugas...", label_visibility="collapsed")
-    
-    if col_bt.button("➕ Tambah", type="primary", use_container_width=True):
-        if tugas_baru.strip():
-            st.session_state.todo_list.append({"tugas": tugas_baru.strip(), "selesai": False})
-            st.rerun()
-            
+
+    if "todos" not in st.session_state:
+        st.session_state.todos = []
+
+    col_in, col_btn = st.columns([4, 1])
+    with col_in:
+        new_task = st.text_input("Tugas Baru:", placeholder="Tuliskan tugas harianmu di sini...", label_visibility="collapsed")
+    with col_btn:
+        if st.button("➕ Tambah", type="primary", use_container_width=True):
+            if new_task.strip():
+                st.session_state.todos.append({"task": new_task.strip(), "done": False})
+                st.rerun()
+
     st.divider()
-    
-    if not st.session_state.todo_list:
-        st.info("📌 Belum ada tugas ditambahkan.")
+
+    if not st.session_state.todos:
+        st.info("📌 Belum ada tugas. Tambahkan tugas pertama Anda di atas!")
     else:
-        for idx, item in enumerate(st.session_state.todo_list):
-            c_chk, c_txt, c_del = st.columns([0.5, 8, 0.5])
-            is_done = c_chk.checkbox("", value=item["selesai"], key=f"todo_{idx}")
-            st.session_state.todo_list[idx]["selesai"] = is_done
+        for idx, item in enumerate(st.session_state.todos):
+            c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
+            is_done = c1.checkbox("", value=item["done"], key=f"check_{idx}")
+            st.session_state.todos[idx]["done"] = is_done
             
             if is_done:
-                c_txt.markdown(f"~~{item['tugas']}~~ ✅")
+                c2.write(f"~~{item['task']}~~")
             else:
-                c_txt.write(item["tugas"])
+                c2.write(item["task"])
                 
-            if c_del.button("🗑️", key=f"del_todo_{idx}"):
-                st.session_state.todo_list.pop(idx)
+            if c3.button("🗑️", key=f"del_{idx}"):
+                st.session_state.todos.pop(idx)
                 st.rerun()
 
-
-# ==========================================
-# 💰 FITUR 3: PELACAK KEUANGAN (SQLITE)
-# ==========================================
-elif pilihan_menu == "💰 Pelacak Keuangan":
+# =========================================================
+# MENU 3: PELACAK KEUANGAN (PANDAS & METRICS)
+# =========================================================
+elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_menu:
     st.markdown("""
-        <div class="header-box">
-            <h2>💰 Pelacak Keuangan Permanen</h2>
-            <p style="color: #9ca3af; margin: 0;">Catatan keuangan tersimpan aman di Database SQLite.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan Ringkas</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat dan monitor arus kas harian Anda.</p>
         </div>
     """, unsafe_allow_html=True)
-    
+
+    if "transaksi" not in st.session_state:
+        st.session_state.transaksi = []
+
     with st.form("form_keuangan", clear_on_submit=True):
-        c1, c2, c3 = st.columns([3, 2, 2])
-        ket = c1.text_input("Keterangan", placeholder="Contoh: Gaji, Kopi")
-        nom = c2.number_input("Nominal (Rp)", min_value=0, step=5000)
-        jns = c3.selectbox("Jenis", ["Pemasukan", "Pengeluaran"])
-        
-        if st.form_submit_button("💳 Simpan Transaksi", type="primary", use_container_width=True):
-            if ket.strip() and nom > 0:
-                conn = sqlite3.connect("database_app.db")
-                cur = conn.cursor()
-                cur.execute("INSERT INTO keuangan (keterangan, jumlah, jenis) VALUES (?, ?, ?)", (ket, nom, jns))
-                conn.commit()
-                conn.close()
-                st.success("Data berhasil disimpan!")
-                st.rerun()
-            else:
-                st.warning("⚠️ Lengkapi data transaksi dengan benar!")
+        col1, col2, col3 = st.columns([2, 1, 1])
+        ket = col1.text_input("Keterangan", placeholder="Misal: Gaji, Belanja, Makan")
+        tipe = col2.selectbox("Jenis", ["Pemasukan", "Pengeluaran"])
+        jumlah = col3.number_input("Jumlah (Rp)", min_value=0, step=1000)
+        submitted = st.form_submit_button("💾 Simpan Transaksi", type="primary")
 
-    st.divider()
+        if submitted and ket and jumlah > 0:
+            st.session_state.transaksi.append({
+                "Keterangan": ket,
+                "Jenis": tipe,
+                "Jumlah (Rp)": jumlah if tipe == "Pemasukan" else -jumlah
+            })
+            st.success("Transaksi berhasil dicatat!")
 
-    # Load Data dari SQLite
-    conn = sqlite3.connect("database_app.db")
-    df = pd.read_sql_query("SELECT id, keterangan as Keterangan, jumlah as Jumlah, jenis as Jenis FROM keuangan", conn)
-    conn.close()
+    if st.session_state.transaksi:
+        df = pd.DataFrame(st.session_state.transaksi)
+        masuk = df[df["Jumlah (Rp)"] > 0]["Jumlah (Rp)"].sum()
+        keluar = abs(df[df["Jumlah (Rp)"] < 0]["Jumlah (Rp)"].sum())
+        saldo = masuk - keluar
 
-    if not df.empty:
-        total_masuk = df[df["Jenis"] == "Pemasukan"]["Jumlah"].sum()
-        total_keluar = df[df["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
-        saldo = total_masuk - total_keluar
-
+        st.divider()
         m1, m2, m3 = st.columns(3)
-        m1.metric("🟢 Total Pemasukan", f"Rp {total_masuk:,.0f}")
-        m2.metric("🔴 Total Pengeluaran", f"Rp {total_keluar:,.0f}")
-        m3.metric("🔵 Sisa Saldo", f"Rp {saldo:,.0f}")
+        m1.metric("Total Pemasukan", f"Rp {masuk:,.0f}")
+        m2.metric("Total Pengeluaran", f"Rp {keluar:,.0f}")
+        m3.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
 
-        st.subheader("📊 Riwayat Transaksi")
-        st.dataframe(df[["Keterangan", "Jumlah", "Jenis"]], use_container_width=True)
-        
-        if st.button("🗑️ Hapus Semua Data Keuangan"):
-            conn = sqlite3.connect("database_app.db")
-            conn.execute("DELETE FROM keuangan")
-            conn.commit()
-            conn.close()
-            st.rerun()
-    else:
-        st.info("💡 Belum ada catatan transaksi keuangan.")
+        st.subheader("📋 Riwayat Transaksi")
+        st.dataframe(df, use_container_width=True)
 
-
-# ==========================================
-# 💬 FITUR 4: QUOTES INSPIRATIF
-# ==========================================
-elif pilihan_menu == "💬 Quotes Inspiratif":
+# =========================================================
+# MENU 4: QUOTES INSPIRATIF
+# =========================================================
+elif pilihan_menu == "💬 Quotes Inspiratif" or "Quotes Inspiratif" in pilihan_menu:
     st.markdown("""
-        <div class="header-box">
-            <h2>💬 Quotes Inspiratif</h2>
-            <p style="color: #9ca3af; margin: 0;">Suntikan semangat untuk produktivitas harimu.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #8b5cf6; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">💬 Quotes Inspiratif</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Pengingat dan motivasi harian untuk semangat berkarya.</p>
         </div>
     """, unsafe_allow_html=True)
-    
-    quotes = [
-        {"q": "Cara terbaik memprediksi masa depan adalah dengan menciptakannya.", "a": "Peter Drucker"},
-        {"q": "Satu-satunya cara melakukan pekerjaan hebat adalah mencintai apa yang dilakukan.", "a": "Steve Jobs"},
-        {"q": "Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.", "a": "Colin Powell"},
-        {"q": "Jangan menunggu kesempatan, ciptakanlah kesempatan itu sendiri.", "a": "Anonim"}
+
+    quotes_list = [
+        ("Cara terbaik untuk memulai adalah dengan berhenti berbicara dan mulai melakukan.", "Walt Disney"),
+        ("Jangan menunggu kesempatan, ciptakan kesempatan itu sendiri.", "George Bernard Shaw"),
+        ("Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.", "Colin Powell"),
+        ("Fokus pada prosesnya, hasil terbaik akan mengikuti dengan sendirinya.", "Anonim"),
+        ("Satu-satunya cara untuk melakukan pekerjaan besar adalah dengan mencintai apa yang Anda lakukan.", "Steve Jobs")
     ]
-    
-    if "qt" not in st.session_state:
-        st.session_state.qt = random.choice(quotes)
-        
-    st.info(f"“{st.session_state.qt['q']}”\n\n— **{st.session_state.qt['a']}**")
-    if st.button("🎲 Quote Lain", type="primary"):
-        st.session_state.qt = random.choice(quotes)
-        st.rerun()
 
+    if "current_quote" not in st.session_state:
+        st.session_state.current_quote = random.choice(quotes_list)
 
-# ==========================================
-# 📥 FITUR 5: MEDIA DOWNLOADER (ANTI TIMEOUT)
-# ==========================================
-elif pilihan_menu == "📥 Media Downloader":
+    if st.button("🎲 Ambil Quote Acak", type="primary"):
+        st.session_state.current_quote = random.choice(quotes_list)
+
+    q, a = st.session_state.current_quote
+    st.markdown(f"""
+        <div style="background-color: #0f172a; padding: 30px; border-radius: 10px; margin-top: 20px; text-align: center;">
+            <h3 style="color: #f1f5f9; font-style: italic;">"{q}"</h3>
+            <p style="color: #94a3b8; font-weight: bold;">— {a}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+# =========================================================
+# MENU 5: MEDIA DOWNLOADER (HYBRID NATIVE & FALLBACK)
+# =========================================================
+elif "Media Downloader" in pilihan_menu:
     st.markdown("""
-        <div class="header-box">
-            <h2>📥 Universal Media Downloader</h2>
-            <p style="color: #9ca3af; margin: 0;">Unduh video/audio YouTube tanpa error.</p>
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #ef4444; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">📺 Universal Media Downloader</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Unduh video atau audio YouTube secara langsung.</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -263,39 +216,48 @@ elif pilihan_menu == "📥 Media Downloader":
         if not url_in.strip():
             st.warning("⚠️ Masukkan URL video terlebih dahulu!")
         else:
-            with st.spinner("Mengunduh media... Mohon tunggu sebentar."):
+            with st.spinner("Sedang memproses dan mengunduh file... Mohon tunggu sebentar."):
                 try:
                     out_dir = "downloads"
                     os.makedirs(out_dir, exist_ok=True)
-                    
+
                     ydl_opts = {
-            'format': 'best[ext=mp4][height<=720]/best[height<=720]/best' if "Video" in fmt else 'bestaudio/best',
-            'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
-            'quiet': True,
-            'no_warnings': True,
-            'nocheckcertificate': True,
-            'socket_timeout': 15,
-            'extractor_args': {'youtube': {'player_client': ['mweb', 'android']}},
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
-            }
-        }
+                        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' if "Video" in fmt else 'bestaudio/best',
+                        'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
+                        'quiet': True,
+                        'no_warnings': True,
+                        'nocheckcertificate': True,
+                        'socket_timeout': 15,
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['android', 'ios', 'mweb']
+                            }
+                        },
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                        }
+                    }
 
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url_in, download=True)
-                        title = info.get('title', 'Downloaded_Media')
-                        fpath = ydl.prepare_filename(info)
+                        info = ydl.extract_info(url_in.strip(), download=True)
+                        file_path = ydl.prepare_filename(info)
 
-                    st.success(f"✅ Selesai: **{title}**")
-
-                    if os.path.exists(fpath):
-                        with open(fpath, "rb") as f:
+                    if os.path.exists(file_path):
+                        with open(file_path, "rb") as file:
                             st.download_button(
-                                label="💾 Simpan File ke Laptop/HP",
-                                data=f,
-                                file_name=os.path.basename(fpath),
-                                mime="application/octet-stream",
+                                label="💾 Klik di Sini untuk Mengunduh File",
+                                data=file,
+                                file_name=os.path.basename(file_path),
+                                mime="video/mp4" if "Video" in fmt else "audio/mp3",
                                 type="primary"
                             )
-                except Exception as err:
-                    st.error(f"❌ Terjadi kesalahan: {err}")
+                        st.success("✅ File berhasil diunduh secara langsung!")
+
+                except Exception:
+                    st.warning("⚠️ Server Cloud terdeteksi bot oleh YouTube. Gunakan tautan unduh langsung via Cobalt Web di bawah ini:")
+                    st.link_button("🌐 Unduh Langsung via Cobalt Web", f"https://cobalt.tools/#url={url_in.strip()}", type="primary", use_container_width=True)
+
+    if url_in.strip():
+        st.divider()
+        st.subheader("🎬 Pratinjau Video")
+        st.video(url_in.strip())
