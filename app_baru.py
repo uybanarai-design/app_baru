@@ -20,6 +20,7 @@ pilihan_menu = st.sidebar.radio(
         "🌤️ Cek Cuaca",
         "📝 To-Do List",
         "💰 Pelacak Keuangan",
+        "🎵 Pemutar Musik",
         "💬 Quotes Inspiratif",
         "📥 Media Downloader"
     ]
@@ -164,9 +165,6 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         st.subheader("📋 Riwayat Transaksi")
         st.dataframe(df, use_container_width=True)
 
-        # -------------------------------------------------
-        # TOMBOL EKSPOR DATA (CSV & EXCEL)
-        # -------------------------------------------------
         st.divider()
         st.subheader("📥 Ekspor Laporan Keuangan")
         col_csv, col_excel = st.columns(2)
@@ -197,7 +195,33 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         )
 
 # =========================================================
-# MENU 4: QUOTES INSPIRATIF
+# MENU 4: PEMUTAR MUSIK (LO-FI & RELAXING AUDIO)
+# =========================================================
+elif pilihan_menu == "🎵 Pemutar Musik" or "Pemutar Musik" in pilihan_menu:
+    st.markdown("""
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #ec4899; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">🎵 Pemutar Musik & Suara Santai</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Dengarkan musik Lo-Fi dan ambient sound untuk menemani belajar atau bekerja.</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    tracks = {
+        "☕ Chill Lo-Fi Beats": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "🌧️ Suara Hujan & Alam": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+        "🌌 Deep Focus Ambient": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+        "🎸 Smooth Acoustic Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+    }
+
+    selected_track = st.selectbox("🎧 Pilih Audio / Musik:", list(tracks.keys()))
+    
+    st.markdown(f"**Sedang Memutar:** `{selected_track}`")
+    st.audio(tracks[selected_track], format="audio/mp3")
+
+    st.divider()
+    st.caption("💡 *Tips: Kamu juga bisa mengganti link MP3 di atas dengan file MP3 milikmu sendiri atau link radio stream favorit.*")
+
+# =========================================================
+# MENU 5: QUOTES INSPIRATIF
 # =========================================================
 elif pilihan_menu == "💬 Quotes Inspiratif" or "Quotes Inspiratif" in pilihan_menu:
     st.markdown("""
@@ -230,7 +254,7 @@ elif pilihan_menu == "💬 Quotes Inspiratif" or "Quotes Inspiratif" in pilihan_
     """, unsafe_allow_html=True)
 
 # =========================================================
-# MENU 5: MEDIA DOWNLOADER (HYBRID NATIVE & FALLBACK)
+# MENU 6: MEDIA DOWNLOADER (HYBRID NATIVE & FALLBACK)
 # =========================================================
 elif "Media Downloader" in pilihan_menu:
     st.markdown("""
