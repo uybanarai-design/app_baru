@@ -195,30 +195,34 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         )
 
 # =========================================================
-# MENU 4: PEMUTAR MUSIK (LO-FI & RELAXING AUDIO)
+# MENU 4: PEMUTAR MUSIK (DENGAN FITUR UPLOAD FILE)
 # =========================================================
 elif pilihan_menu == "🎵 Pemutar Musik" or "Pemutar Musik" in pilihan_menu:
     st.markdown("""
         <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #ec4899; margin-bottom: 20px;">
             <h2 style="color: white; margin: 0;">🎵 Pemutar Musik & Suara Santai</h2>
-            <p style="color: #9ca3af; margin: 5px 0 0 0;">Dengarkan musik Lo-Fi dan ambient sound untuk menemani belajar atau bekerja.</p>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Putar musik bawaan atau unggah file MP3 milikmu sendiri.</p>
         </div>
     """, unsafe_allow_html=True)
 
-    tracks = {
-        "☕ Chill Lo-Fi Beats": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        "🌧️ Suara Hujan & Alam": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        "🌌 Deep Focus Ambient": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        "🎸 Smooth Acoustic Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
-    }
+    tab1, tab2 = st.tabs(["📻 Musik Bawaan", "📁 Upload MP3 Sendiri"])
 
-    selected_track = st.selectbox("🎧 Pilih Audio / Musik:", list(tracks.keys()))
-    
-    st.markdown(f"**Sedang Memutar:** `{selected_track}`")
-    st.audio(tracks[selected_track], format="audio/mp3")
+    with tab1:
+        tracks = {
+            "☕ Chill Lo-Fi Beats": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "🌧️ Suara Hujan & Alam": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+            "🌌 Deep Focus Ambient": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+        }
+        selected_track = st.selectbox("🎧 Pilih Audio Stream:", list(tracks.keys()))
+        st.audio(tracks[selected_track], format="audio/mp3")
 
-    st.divider()
-    st.caption("💡 *Tips: Kamu juga bisa mengganti link MP3 di atas dengan file MP3 milikmu sendiri atau link radio stream favorit.*")
+    with tab2:
+        st.subheader("📤 Upload File Musik Kamu (.mp3 / .wav)")
+        uploaded_file = st.file_uploader("Pilih file lagu dari perangkatmu:", type=["mp3", "wav", "m4a"])
+        
+        if uploaded_file is not None:
+            st.success(f"🎵 Memutar: **{uploaded_file.name}**")
+            st.audio(uploaded_file)
 
 # =========================================================
 # MENU 5: QUOTES INSPIRATIF
