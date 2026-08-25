@@ -17,12 +17,15 @@ st.sidebar.caption("All-in-One Productivity Hub")
 pilihan_menu = st.sidebar.radio(
     "Navigasi Fitur",
     [
+        "⏰ Jam Digital",
         "🌤️ Cek Cuaca",
         "📝 To-Do List",
         "💰 Pelacak Keuangan",
         "🎵 Pemutar Musik",
         "💬 Quotes Inspiratif",
         "📥 Media Downloader"
+    ]
+)
     ]
 )
 
@@ -322,3 +325,50 @@ elif "Media Downloader" in pilihan_menu:
         st.divider()
         st.subheader("🎬 Pratinjau Video")
         st.video(url_in.strip())
+
+# =========================================================
+# MENU: JAM DIGITAL & TANGGAL
+# =========================================================
+if pilihan_menu == "⏰ Jam Digital" or "Jam Digital" in pilihan_menu:
+    import datetime
+    import time
+
+    st.markdown("""
+        <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #06b6d4; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">⏰ Jam Digital & Waktu Real-Time</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Pantau waktu dan tanggal saat ini untuk menjaga produktivitas.</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Format Nama Hari dan Bulan Indonesia
+    hari_map = {
+        "Monday": "Senin", "Tuesday": "Selasa", "Wednesday": "Rabu",
+        "Thursday": "Kamis", "Friday": "Jumat", "Saturday": "Sabtu", "Sunday": "Minggu"
+    }
+    bulan_map = {
+        "January": "Januari", "February": "Februari", "March": "Maret", "April": "April",
+        "May": "Mei", "June": "Juni", "July": "Juli", "August": "Agustus",
+        "September": "September", "October": "Oktober", "November": "November", "December": "Desember"
+    }
+
+    now = datetime.datetime.now()
+    hari_indo = hari_map.get(now.strftime("%A"), now.strftime("%A"))
+    bulan_indo = bulan_map.get(now.strftime("%B"), now.strftime("%B"))
+    tanggal_lengkap = f"{hari_indo}, {now.strftime('%d')} {bulan_indo} {now.strftime('%Y')}"
+
+    # Tampilan Wadah Jam Digital
+    st.markdown(f"""
+        <div style="background-color: #0f172a; padding: 40px; border-radius: 15px; text-align: center; border: 1px solid #334155;">
+            <h4 style="color: #94a3b8; margin-bottom: 10px; font-weight: 400;">📅 {tanggal_lengkap}</h4>
+            <h1 style="color: #38bdf8; font-size: 64px; margin: 0; font-family: monospace; letter-spacing: 2px;">
+                {now.strftime('%H:%M:%S')}
+            </h1>
+            <p style="color: #64748b; margin-top: 15px; font-size: 14px;">Waktu Lokal Perangkat</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # Tombol Refresh Jam
+    if st.button("🔄 Perbarui Waktu", type="primary", use_container_width=True):
+        st.rerun()
