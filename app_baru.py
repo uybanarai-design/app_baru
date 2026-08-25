@@ -26,8 +26,6 @@ pilihan_menu = st.sidebar.radio(
         "📥 Media Downloader"
     ]
 )
-    ]
-)
 
 st.sidebar.divider()
 st.sidebar.info("💡 Status: Dashboard Aktif & Siap Digunakan")
