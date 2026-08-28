@@ -128,14 +128,15 @@ elif pilihan_menu == "📝 To-Do List" or "To-Do List" in pilihan_menu:
 elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_menu:
     st.markdown("""
         <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 20px;">
-            <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan Ringkas</h2>
-            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat, monitor, dan ekspor arus kas harian Anda.</p>
+            <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan & Grafik Analisis</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat transaksi harian dan pantau visualisasi arus kas Anda.</p>
         </div>
     """, unsafe_allow_html=True)
 
     if "transaksi" not in st.session_state:
         st.session_state.transaksi = []
 
+    # Form Input Transaksi
     with st.form("form_keuangan", clear_on_submit=True):
         col1, col2, col3 = st.columns([2, 1, 1])
         ket = col1.text_input("Keterangan", placeholder="Misal: Gaji, Belanja, Makan")
@@ -147,14 +148,16 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
             st.session_state.transaksi.append({
                 "Keterangan": ket,
                 "Jenis": tipe,
-                "Jumlah (Rp)": jumlah if tipe == "Pemasukan" else -jumlah
+                "Jumlah (Rp)": jumlah if tipe == "Pemasukan" else -jumlah,
+                "Nominal Positif": jumlah
             })
             st.success("Transaksi berhasil dicatat!")
+            st.rerun()
 
     if st.session_state.transaksi:
         df = pd.DataFrame(st.session_state.transaksi)
-        masuk = df[df["Jumlah (Rp)"] > 0]["Jumlah (Rp)"].sum()
-        keluar = abs(df[df["Jumlah (Rp)"] < 0]["Jumlah (Rp)"].sum())
+        masuk = df[df["Jumlah (Rp)"] > 0]["Nominal Positif"].sum()
+        keluar = df[df["Jumlah (Rp)"] < 0]["Nominal Positif"].sum()
         saldo = masuk - keluar
 
         st.divider()
@@ -163,15 +166,46 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         m2.metric("Total Pengeluaran", f"Rp {keluar:,.0f}")
         m3.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
 
-        st.subheader("📋 Riwayat Transaksi")
-        st.dataframe(df, use_container_width=True)
+        # VISUALISASI GRAFIK KEUANGAN
+        st.divider()
+        st.subheader("📊 Visualisasi & Analisis Grafik")
+
+        tab_grafik1, tab_grafik2 = st.tabs(["📈 Perbandingan Total", "📄 Detail Riwayat Data"])
+
+        with tab_grafik1:
+            col_chart1, col_chart2 = st.columns(2)
+
+            with col_chart1:
+                st.write("**Perbandingan Pemasukan vs Pengeluaran**")
+                df_summary = pd.DataFrame({
+                    "Kategori": ["Pemasukan", "Pengeluaran"],
+                    "Total (Rp)": [masuk, keluar]
+                }).set_index("Kategori")
+                
+                st.bar_chart(df_summary, color="#f59e0b")
+
+            with col_chart2:
+                st.write("**Proporsi Arus Kas**")
+                if masuk > 0 or keluar > 0:
+                    total_semua = masuk + keluar
+                    rasio_masuk = (masuk / total_semua) * 100
+                    rasio_keluar = (keluar / total_semua) * 100
+                    
+                    st.write(f"📥 Pemasukan: **{rasio_masuk:.1f}%**")
+                    st.progress(int(rasio_masuk) / 100)
+                    
+                    st.write(f"📤 Pengeluaran: **{rasio_keluar:.1f}%**")
+                    st.progress(int(rasio_keluar) / 100)
+
+        with tab_grafik2:
+            st.dataframe(df[["Keterangan", "Jenis", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"}), use_container_width=True)
 
         st.divider()
         st.subheader("📥 Ekspor Laporan Keuangan")
         col_csv, col_excel = st.columns(2)
 
-        # 1. Ekspor CSV
-        csv_data = df.to_csv(index=False).encode('utf-8')
+        df_export = df[["Keterangan", "Jenis", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"})
+        csv_data = df_export.to_csv(index=False).encode('utf-8')
         col_csv.download_button(
             label="📄 Unduh Laporan (CSV)",
             data=csv_data,
@@ -180,10 +214,9 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
             use_container_width=True
         )
 
-        # 2. Ekspor Excel (.xlsx)
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Keuangan')
+            df_export.to_excel(writer, index=False, sheet_name='Keuangan')
         excel_data = buffer.getvalue()
 
         col_excel.download_button(
