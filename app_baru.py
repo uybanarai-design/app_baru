@@ -123,35 +123,45 @@ elif pilihan_menu == "📝 To-Do List" or "To-Do List" in pilihan_menu:
                 st.rerun()
 
 # =========================================================
-# MENU 3: PELACAK KEUANGAN (FITUR EKSPOR CSV & EXCEL)
+# MENU 3: PELACAK KEUANGAN & GRAFIK ANALISIS KATEGORI
 # =========================================================
-elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_menu:
+elif "Pelacak Keuangan" in pilihan_menu:
     st.markdown("""
         <div style="background-color: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 20px;">
-            <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan & Grafik Analisis</h2>
-            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat transaksi harian dan pantau visualisasi arus kas Anda.</p>
+            <h2 style="color: white; margin: 0;">💰 Pelacak Keuangan & Diagram Pie Kategori</h2>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">Catat transaksi harian beserta kategorinya dan pantau alokasi pengeluaranmu.</p>
         </div>
     """, unsafe_allow_html=True)
 
     if "transaksi" not in st.session_state:
         st.session_state.transaksi = []
 
-    # Form Input Transaksi
+    # Form Input Transaksi dengan Kategori
     with st.form("form_keuangan", clear_on_submit=True):
-        col1, col2, col3 = st.columns([2, 1, 1])
-        ket = col1.text_input("Keterangan", placeholder="Misal: Gaji, Belanja, Makan")
-        tipe = col2.selectbox("Jenis", ["Pemasukan", "Pengeluaran"])
-        jumlah = col3.number_input("Jumlah (Rp)", min_value=0, step=1000)
+        col1, col2 = st.columns([2, 1])
+        ket = col1.text_input("Keterangan", placeholder="Misal: Nasi Goreng, Beli Bensin, Gaji Bulanan")
+        tipe = col2.selectbox("Jenis Transaksi", ["Pengeluaran", "Pemasukan"])
+
+        col3, col4 = st.columns([1, 1])
+        if tipe == "Pengeluaran":
+            kategori_list = ["🍔 Makanan & Minuman", "🚗 Transportasi", "🏠 Tagihan & Rumah", "🛍️ Belanja / Hiburan", "📦 Lain-lain"]
+        else:
+            kategori_list = ["💼 Gaji / Usaha", "📈 Investasi / Bonus", "🎁 Hadiah / Transfer", "📦 Lain-lain"]
+        
+        kat = col3.selectbox("Kategori", kategori_list)
+        jumlah = col4.number_input("Jumlah (Rp)", min_value=0, step=1000)
+
         submitted = st.form_submit_button("💾 Simpan Transaksi", type="primary")
 
         if submitted and ket and jumlah > 0:
             st.session_state.transaksi.append({
                 "Keterangan": ket,
                 "Jenis": tipe,
+                "Kategori": kat,
                 "Jumlah (Rp)": jumlah if tipe == "Pemasukan" else -jumlah,
                 "Nominal Positif": jumlah
             })
-            st.success("Transaksi berhasil dicatat!")
+            st.success("✅ Transaksi berhasil dicatat!")
             st.rerun()
 
     if st.session_state.transaksi:
@@ -166,50 +176,49 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         m2.metric("Total Pengeluaran", f"Rp {keluar:,.0f}")
         m3.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
 
-        # VISUALISASI GRAFIK KEUANGAN
+        # VISUALISASI GRAFIK & DIAGRAM PIE
         st.divider()
-        st.subheader("📊 Visualisasi & Analisis Grafik")
+        st.subheader("📊 Analisis & Diagram Pie")
 
-        tab_grafik1, tab_grafik2 = st.tabs(["📈 Perbandingan Total", "📄 Detail Riwayat Data"])
+        tab_grafik1, tab_grafik2 = st.tabs(["🥧 Rincian Kategori Pengeluaran", "📄 Detail Data Transaksi"])
 
         with tab_grafik1:
-            col_chart1, col_chart2 = st.columns(2)
-
-            with col_chart1:
-                st.write("**Perbandingan Pemasukan vs Pengeluaran**")
-                df_summary = pd.DataFrame({
-                    "Kategori": ["Pemasukan", "Pengeluaran"],
-                    "Total (Rp)": [masuk, keluar]
-                }).set_index("Kategori")
+            df_pengeluaran = df[df["Jenis"] == "Pengeluaran"]
+            
+            if not df_pengeluaran.empty:
+                col_chart1, col_chart2 = st.columns([1, 1])
                 
-                st.bar_chart(df_summary, color="#f59e0b")
+                with col_chart1:
+                    st.write("**Grafik Alokasi Pengeluaran per Kategori**")
+                    cat_summary = df_pengeluaran.groupby("Kategori")["Nominal Positif"].sum().reset_index()
+                    cat_summary.columns = ["Kategori", "Total (Rp)"]
+                    cat_chart_data = cat_summary.set_index("Kategori")
+                    
+                    st.bar_chart(cat_chart_data, color="#ef4444")
 
-            with col_chart2:
-                st.write("**Proporsi Arus Kas**")
-                if masuk > 0 or keluar > 0:
-                    total_semua = masuk + keluar
-                    rasio_masuk = (masuk / total_semua) * 100
-                    rasio_keluar = (keluar / total_semua) * 100
-                    
-                    st.write(f"📥 Pemasukan: **{rasio_masuk:.1f}%**")
-                    st.progress(int(rasio_masuk) / 100)
-                    
-                    st.write(f"📤 Pengeluaran: **{rasio_keluar:.1f}%**")
-                    st.progress(int(rasio_keluar) / 100)
+                with col_chart2:
+                    st.write("**Persentase Pengeluaran**")
+                    total_out = df_pengeluaran["Nominal Positif"].sum()
+                    for idx, row in cat_summary.iterrows():
+                        pct = (row["Total (Rp)"] / total_out) * 100
+                        st.write(f"{row['Kategori']}: **{pct:.1f}%** (Rp {row['Total (Rp)']:,.0f})")
+                        st.progress(int(pct) / 100)
+            else:
+                st.info("💡 Belum ada data pengeluaran. Tambahkan pengeluaran untuk melihat rincian kategori.")
 
         with tab_grafik2:
-            st.dataframe(df[["Keterangan", "Jenis", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"}), use_container_width=True)
+            st.dataframe(df[["Keterangan", "Jenis", "Kategori", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"}), use_container_width=True)
 
         st.divider()
         st.subheader("📥 Ekspor Laporan Keuangan")
         col_csv, col_excel = st.columns(2)
 
-        df_export = df[["Keterangan", "Jenis", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"})
+        df_export = df[["Keterangan", "Jenis", "Kategori", "Nominal Positif"]].rename(columns={"Nominal Positif": "Jumlah (Rp)"})
         csv_data = df_export.to_csv(index=False).encode('utf-8')
         col_csv.download_button(
             label="📄 Unduh Laporan (CSV)",
             data=csv_data,
-            file_name="laporan_keuangan.csv",
+            file_name="laporan_keuangan_kategori.csv",
             mime="text/csv",
             use_container_width=True
         )
@@ -222,11 +231,13 @@ elif pilihan_menu == "💰 Pelacak Keuangan" or "Pelacak Keuangan" in pilihan_me
         col_excel.download_button(
             label="📊 Unduh Laporan (Excel)",
             data=excel_data,
-            file_name="laporan_keuangan.xlsx",
+            file_name="laporan_keuangan_kategori.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             type="primary",
             use_container_width=True
         )
+    else:
+        st.info("📌 Belum ada transaksi yang dicatat. Silakan isi form di atas!")
 
 # =========================================================
 # MENU 4: PEMUTAR MUSIK (DENGAN FITUR UPLOAD FILE)
